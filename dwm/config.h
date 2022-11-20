@@ -1,5 +1,8 @@
 /* See LICENSE file for copyright and license details. */
 
+#define ICONSIZE 16   /* icon size */
+#define ICONSPACING 5 /* space between icon and title */
+
 /* appearance */
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
 
@@ -22,13 +25,14 @@ static const char col_gray3[]       = "#bbbbbb";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_cyan[]        = "#005577";
 
-static const char col_cyan_adapta[] = "#00bcd4";
+static const char col_cyan_adapta[] = "#009ab2";
+static const char col_white[] = "#ffffff";
 static const char col_orange[]		= "#dd8800";
 
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_cyan_adapta,  col_cyan_adapta  },
+	[SchemeSel]  = { col_white, col_cyan_adapta,  col_white  },
 };
 
 /* tagging */
