@@ -1,10 +1,12 @@
 /* user and group to drop privileges to */
 static const char *user  = "nobody";
+
+static const char col_cyan_adapta[] = "#009ab2";
 static const char *group = "nogroup";
 
 static const char *colorname[NUMCOLS] = {
 	[INIT] =   "black",     /* after initialization */
-	[INPUT] =  "#005577",   /* during input */
+	[INPUT] =  col_cyan_adapta,   /* during input */
 	[FAILED] = "#CC3333",   /* wrong password */
 };
 

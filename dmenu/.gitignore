@@ -1,8 +1,0 @@
-#ignore build files
-*.o
-dmenu
-stest
-
-#ignore patch files
-*.rej
-*.orig

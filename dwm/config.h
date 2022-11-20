@@ -1,7 +1,8 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  = 3;        /* border pixel of windows */
+static const unsigned int borderpx  = 2;        /* border pixel of windows */
+
 static const unsigned int gappx     = 7;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
@@ -21,12 +22,13 @@ static const char col_gray3[]       = "#bbbbbb";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_cyan[]        = "#005577";
 
+static const char col_cyan_adapta[] = "#00bcd4";
 static const char col_orange[]		= "#dd8800";
 
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_orange,  col_orange  },
+	[SchemeSel]  = { col_gray4, col_cyan_adapta,  col_cyan_adapta  },
 };
 
 /* tagging */
@@ -42,7 +44,7 @@ static const Rule rules[] = {
 	//{ "Firefox",	NULL,       NULL,       1 << 8,       0,           -1 },
 	
 	{ "Pcmanfm", NULL, "Execute File", 0, 1, -1 },
-	{ "Gpicview", NULL, NULL, 0, 1,	-1 }, 
+	{ "Image Lounge", NULL, NULL, 0, 1,	-1 }, 
 	{ "Pavucontrol", NULL, "Volume Control", 0, 1, -1 },
 	{ NULL, NULL, "minecraft-launcher", 0, 1, -1 }
 };
@@ -119,7 +121,7 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },	
 
 	//Custom keys
 	{ 0,							XK_Print,  spawn,		   { .v = screenshotcmd } },
@@ -132,6 +134,7 @@ static const Key keys[] = {
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static const Button buttons[] = {
+	{ ClkWinTitle,		    MODKEY|ShiftMask,             Button1,      killclient,     {0} },
 	/* click                event mask      button          function        argument */
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
