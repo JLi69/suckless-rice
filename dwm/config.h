@@ -4,8 +4,7 @@
 #define ICONSPACING 5 /* space between icon and title */
 
 /* appearance */
-static const unsigned int borderpx  = 2;        /* border pixel of windows */
-
+static const unsigned int borderpx  = 3;        /* border pixel of windows */
 static const unsigned int gappx     = 7;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
@@ -21,7 +20,7 @@ static const char dmenufont[]       = "monospace:size=10";
 //Colors
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
-static const char col_gray3[]       = "#bbbbbb";
+static const char col_gray3[]       = "#aaaaaa";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_cyan[]        = "#005577";
 
@@ -31,8 +30,8 @@ static const char col_orange[]		= "#dd8800";
 
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_white, col_cyan_adapta,  col_white  },
+	[SchemeNorm] = { col_gray3, col_gray1, col_gray1 },
+	[SchemeSel]  = { col_white, col_gray1,  col_gray2  },
 };
 
 /* tagging */
@@ -88,6 +87,8 @@ static const char *downvol[] = { "pactl", "set-sink-volume", "0", "-5%", NULL };
 static const char *mutevol[] = { "pactl", "set-sink-mute", "0", "toggle", NULL };
 static const char *pavucontrol[] = { "pavucontrol", NULL };
 
+static const char *lockcmd[] = { "slock", NULL };
+
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
@@ -132,13 +133,14 @@ static const Key keys[] = {
 	{ MODKEY,						XK_F11,	   spawn,		   { .v = downvol } },
 	{ MODKEY,						XK_F12,	   spawn,		   { .v = upvol } },
 	{ MODKEY,						XK_F9,	   spawn,		   { .v = mutevol } },
-	{ MODKEY,						XK_F10,	   spawn,		   { .v = pavucontrol } }
+	{ MODKEY,						XK_F10,	   spawn,		   { .v = pavucontrol } },
+	{ MODKEY|ShiftMask,				XK_x,	   spawn,		   { .v = lockcmd } }
 };
 
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static const Button buttons[] = {
-	{ ClkWinTitle,		    MODKEY|ShiftMask,             Button1,      killclient,     {0} },
+	{ ClkClientWin,		    MODKEY|ShiftMask, Button1,      killclient,     {0} },
 	/* click                event mask      button          function        argument */
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },

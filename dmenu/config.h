@@ -15,7 +15,7 @@ static const char *colors[SchemeLast][2] = {
 	[SchemeNorm] = { "#ffffff", "#222222" },	
 	//[SchemeNorm] = { "#ffffff", "#dd8800" },
 	//[SchemeSel] = { "#eeeeee", "#005577" },	
-	[SchemeSel] = { "#eeeeee", col_cyan_adapta },
+	[SchemeSel] = { "#ffffff", col_cyan_adapta },
 	[SchemeOut] = { "#000000", "#00ffff" },	
 	//[SchemeOut] = { "#000000", "#dd8800" },
 };

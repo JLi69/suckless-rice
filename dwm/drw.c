@@ -18,8 +18,15 @@ static const long utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000
 static const long utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
 
 static long
+utf8decodebyteASCII(const char c, size_t *i)
+{
+    return c;
+}
+
+static long
 utf8decodebyte(const char c, size_t *i)
 {
+	//return c; //Test, delete later?
 	for (*i = 0; *i < (UTF_SIZ + 1); ++(*i))
 		if (((unsigned char)c & utfmask[*i]) == utfbyte[*i])
 			return (unsigned char)c & ~utfmask[*i];
@@ -60,6 +67,33 @@ utf8decode(const char *c, long *u, size_t clen)
 
 	return len;
 }
+
+static size_t
+utf8decodeASCII(const char *c, long *u, size_t clen)
+{
+	size_t i, j, len, type;
+	long udecoded;
+
+	*u = UTF_INVALID;
+	if (!clen)
+		return 0;
+	udecoded = utf8decodebyte(c[0], &len);
+	if (!BETWEEN(len, 1, UTF_SIZ))
+		return 1;
+	for (i = 1, j = 1; i < clen && j < len; ++i, ++j) {
+		udecoded = (udecoded << 6) | utf8decodebyteASCII(c[i], &type);
+		if (type)
+			return j;
+	}
+	if (j < len)
+		return 0;
+	*u = udecoded;
+	utf8validate(u, len);
+
+	return len;
+}
+
+
 
 Drw *
 drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
@@ -346,6 +380,155 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
 		nextfont = NULL;
 		while (*text) {
 			utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
+			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+				if (charexists) {
+					drw_font_getexts(curfont, text, utf8charlen, &tmpw, NULL);
+					if (ew + ellipsis_width <= w) {
+						/* keep track where the ellipsis still fits */
+						ellipsis_x = x + ew;
+						ellipsis_w = w - ew;
+						ellipsis_len = utf8strlen;
+					}
+
+					if (ew + tmpw > w) {
+						overflow = 1;
+						/* called from drw_fontset_getwidth_clamp():
+						 * it wants the width AFTER the overflow
+						 */
+						if (!render)
+							x += tmpw;
+						else
+							utf8strlen = ellipsis_len;
+					} else if (curfont == usedfont) {
+						utf8strlen += utf8charlen;
+						text += utf8charlen;
+						ew += tmpw;
+					} else {
+						nextfont = curfont;
+					}
+					break;
+				}
+			}
+
+			if (overflow || !charexists || nextfont)
+				break;
+			else
+				charexists = 0;
+		}
+
+		if (utf8strlen) {
+			if (render) {
+				ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
+				XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
+				                  usedfont->xfont, x, ty, (XftChar8 *)utf8str, utf8strlen);
+			}
+			x += ew;
+			w -= ew;
+		}
+		if (render && overflow)
+			drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
+
+		if (!*text || overflow) {
+			break;
+		} else if (nextfont) {
+			charexists = 0;
+			usedfont = nextfont;
+		} else {
+			/* Regardless of whether or not a fallback font is found, the
+			 * character must be drawn. */
+			charexists = 1;
+
+			for (i = 0; i < nomatches_len; ++i) {
+				/* avoid calling XftFontMatch if we know we won't find a match */
+				if (utf8codepoint == nomatches.codepoint[i])
+					goto no_match;
+			}
+
+			fccharset = FcCharSetCreate();
+			FcCharSetAddChar(fccharset, utf8codepoint);
+
+			if (!drw->fonts->pattern) {
+				/* Refer to the comment in xfont_create for more information. */
+				die("the first font in the cache must be loaded from a font string.");
+			}
+
+			fcpattern = FcPatternDuplicate(drw->fonts->pattern);
+			FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
+			FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
+
+			FcConfigSubstitute(NULL, fcpattern, FcMatchPattern);
+			FcDefaultSubstitute(fcpattern);
+			match = XftFontMatch(drw->dpy, drw->screen, fcpattern, &result);
+
+			FcCharSetDestroy(fccharset);
+			FcPatternDestroy(fcpattern);
+
+			if (match) {
+				usedfont = xfont_create(drw, NULL, match);
+				if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) {
+					for (curfont = drw->fonts; curfont->next; curfont = curfont->next)
+						; /* NOP */
+					curfont->next = usedfont;
+				} else {
+					xfont_free(usedfont);
+					nomatches.codepoint[++nomatches.idx % nomatches_len] = utf8codepoint;
+no_match:
+					usedfont = drw->fonts;
+				}
+			}
+		}
+	}
+	if (d)
+		XftDrawDestroy(d);
+
+	return x + (render ? w : 0);
+}
+
+int
+drw_text_ascii_only(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert)
+{
+	int i, ty, ellipsis_x = 0;
+	unsigned int tmpw, ew, ellipsis_w = 0, ellipsis_len;
+	XftDraw *d = NULL;
+	Fnt *usedfont, *curfont, *nextfont;
+	int utf8strlen, utf8charlen, render = x || y || w || h;
+	long utf8codepoint = 0;
+	const char *utf8str;
+	FcCharSet *fccharset;
+	FcPattern *fcpattern;
+	FcPattern *match;
+	XftResult result;
+	int charexists = 0, overflow = 0;
+	/* keep track of a couple codepoints for which we have no match. */
+	enum { nomatches_len = 64 };
+	static struct { long codepoint[nomatches_len]; unsigned int idx; } nomatches;
+	static unsigned int ellipsis_width = 0;
+
+	if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts)
+		return 0;
+
+	if (!render) {
+		w = invert ? invert : ~invert;
+	} else {
+		XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
+		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+		d = XftDrawCreate(drw->dpy, drw->drawable,
+		                  DefaultVisual(drw->dpy, drw->screen),
+		                  DefaultColormap(drw->dpy, drw->screen));
+		x += lpad;
+		w -= lpad;
+	}
+
+	usedfont = drw->fonts;
+	if (!ellipsis_width && render)
+		ellipsis_width = drw_fontset_getwidth(drw, "...");
+	while (1) {
+		ew = ellipsis_len = utf8strlen = 0;
+		utf8str = text;
+		nextfont = NULL;
+		while (*text) {
+			utf8charlen = utf8decodeASCII(text, &utf8codepoint, UTF_SIZ);
 			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
 				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
 				if (charexists) {

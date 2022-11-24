@@ -1,0 +1,7 @@
+#ignore build files
+dmenu
+stest
+*.o
+
+*.orig
+*.rej
